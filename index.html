@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ታማኝ ቢንጎ</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -108,8 +109,8 @@
     </div>
 
     <div class="tab-container">
-        <button class="tab-btn active" onclick="switchTab('rooms')">ክፍሎች (Rooms)</button>
-        <button class="tab-btn" onclick="switchTab('wallet')">ኪስ ቦርሳ (Wallet)</button>
+        <button class="tab-btn active" id="rooms-btn" onclick="switchTab('rooms')">ክፍሎች (Rooms)</button>
+        <button class="tab-btn" id="wallet-btn" onclick="switchTab('wallet')">ኪስ ቦርሳ (Wallet)</button>
     </div>
 
     <div id="rooms-tab" class="tab-content active-content">
@@ -122,12 +123,12 @@
     </div>
 
     <div id="cartela-view" class="tab-content">
-        <button class="join-btn" onclick="switchTab('rooms')">← ተመለስ</button>
+        <button class="join-btn" onclick="backToRooms()">← ተመለስ</button>
         <h3>ካርቴላ ይምረጡ (ከ1 - 200)</h3>
         <p>ስታክ፡ <span id="current-stake">10</span> ብር</p>
         <div class="cartela-grid" id="cartela-container"></div>
         <br>
-        <button class="play-game-btn" onclick="alert('ወደ ጨዋታው በመግባት ላይ...')">ጨዋታውን ጀምር</button>
+        <button class="play-game-btn" onclick="startGame()">ጨዋታውን ጀምር</button>
     </div>
 
     <div id="wallet-tab" class="tab-content">
@@ -142,31 +143,77 @@
     </div>
 
     <script>
+        // ያንተ አዲሱ የባክኤንድ ሰርቨር ሊንክ እዚህ ጋር ተገናኝቷል
+        const socket = io("https://tamagn-bingo-backend.vercel.app");
+        let selectedCartela = null;
+        let currentRoomStake = 10;
+
+        // ሰርቨሩ መገናኘቱን ቼክ ማድረጊያ
+        socket.on('connect', () => {
+            console.log('ከባክኤንድ ሰርቨር ጋር በተሳካ ሁኔታ ተገናኝቷል!');
+        });
+
+        // ከሰርቨር የሚመጣ መልስ መቀበያ
+        socket.on('roomStatus', (data) => {
+            alert(data.message);
+        });
+
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
             if(tabName === 'rooms') {
                 document.getElementById('rooms-tab').classList.add('active-content');
-                event.currentTarget.classList.add('active');
+                document.getElementById('rooms-btn').classList.add('active');
             } else if(tabName === 'wallet') {
                 document.getElementById('wallet-tab').classList.add('active-content');
-                event.currentTarget.classList.add('active');
+                document.getElementById('wallet-btn').classList.add('active');
             }
         }
 
+        function backToRooms() {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
+            document.getElementById('rooms-tab').classList.add('active-content');
+        }
+
         function openCartelaSelection(stake) {
+            currentRoomStake = stake;
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
             document.getElementById('cartela-view').classList.add('active-content');
             document.getElementById('current-stake').innerText = stake;
+            
             const container = document.getElementById('cartela-container');
             container.innerHTML = '';
+            selectedCartela = null; // ሪሴት ለማድረግ
+
             for (let i = 1; i <= 200; i++) {
                 const div = document.createElement('div');
                 div.className = 'cartela-num';
                 div.innerText = i;
-                div.onclick = function() { this.classList.toggle('selected'); };
+                div.onclick = function() { 
+                    // አንድ ካርቴላ ብቻ እንዲመረጥ ማድረግ
+                    document.querySelectorAll('.cartela-num').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected'); 
+                    selectedCartela = i;
+                };
                 container.appendChild(div);
             }
+        }
+
+        // ወደ ሰርቨሩ መረጃ የመላኪያ ፈንክሽን
+        function startGame() {
+            if (!selectedCartela) {
+                alert('እባክዎ መጀመሪያ የመጫወቻ ካርቴላ ይምረጡ!');
+                return;
+            }
+            
+            // ወደ Vercel ባክኤንድ መረጃ መላክ
+            socket.emit('joinRoom', { 
+                room: "room_" + currentRoomStake, 
+                cartela: selectedCartela 
+            });
+            
+            alert('ወደ ጨዋታው ክፍል ' + currentRoomStake + ' በካርቴላ ቁጥር ' + selectedCartela + ' በመግባት ላይ...');
         }
 
         function submitDeposit() {
