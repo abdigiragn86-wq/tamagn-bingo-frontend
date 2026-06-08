@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ታማኝ ቢንጎ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121826;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #1a2238;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ffcc00;
+        }
+        .balance-container {
+            background-color: #ffcc00;
+            color: #121826;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .tab-container {
+            display: flex;
+            background-color: #1a2238;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: #8a99ad;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            color: #ffcc00;
+            border-bottom: 3px solid #ffcc00;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        .active-content {
+            display: block;
+        }
+        .room-card {
+            background-color: #1e2942;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .join-btn, .deposit-btn, .play-game-btn {
+            background-color: #ffcc00;
+            color: #121826;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .cartela-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1e2942;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .cartela-num {
+            background-color: #2a3b5c;
+            padding: 12px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .cartela-num.selected {
+            background-color: #e63946;
+        }
+        .deposit-box input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #2a3b5c;
+            background-color: #1e2942;
+            color: white;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>ታማኝ ቢንጎ</h2>
+        <div class="balance-container"><span id="user-balance">0</span> ETB</div>
+    </div>
+
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="switchTab('rooms')">ክፍሎች (Rooms)</button>
+        <button class="tab-btn" onclick="switchTab('wallet')">ኪስ ቦርሳ (Wallet)</button>
+    </div>
+
+    <div id="rooms-tab" class="tab-content active-content">
+        <h3>የመጫወቻ ክፍል ይምረጡ</h3>
+        <div class="room-list">
+            <div class="room-card" onclick="openCartelaSelection(10)"><span>የ10 ብር ክፍል</span><button class="join-btn">ግባ</button></div>
+            <div class="room-card" onclick="openCartelaSelection(20)"><span>የ20 ብር ክፍል</span><button class="join-btn">ግባ</button></div>
+            <div class="room-card" onclick="openCartelaSelection(50)"><span>የ50 ብር ክፍል</span><button class="join-btn">ግባ</button></div>
+        </div>
+    </div>
+
+    <div id="cartela-view" class="tab-content">
+        <button class="join-btn" onclick="switchTab('rooms')">← ተመለስ</button>
+        <h3>ካርቴላ ይምረጡ (ከ1 - 200)</h3>
+        <p>ስታክ፡ <span id="current-stake">10</span> ብር</p>
+        <div class="cartela-grid" id="cartela-container"></div>
+        <br>
+        <button class="play-game-btn" onclick="alert('ወደ ጨዋታው በመግባት ላይ...')">ጨዋታውን ጀምር</button>
+    </div>
+
+    <div id="wallet-tab" class="tab-content">
+        <h3>የአሁኑ ሂሳብዎ: <span id="wallet-balance">0</span> ETB</h3>
+        <div class="deposit-box">
+            <h4>በቴሌብር ገንዘብ ያስገቡ</h4>
+            <p>ከ10 ብር ጀምሮ የፈለጉትን ያህል ማስገባት ይችላሉ።</p>
+            <input type="number" id="deposit-amount" placeholder="የብር መጠን (ከ10 ብር በላይ)" min="10">
+            <input type="text" id="ref-number" placeholder="የማጣቀሻ ቁጥር (Transaction Ref)">
+            <button class="deposit-btn" onclick="submitDeposit()">ለአስተዳዳሪው ላክ</button>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if(tabName === 'rooms') {
+                document.getElementById('rooms-tab').classList.add('active-content');
+                event.currentTarget.classList.add('active');
+            } else if(tabName === 'wallet') {
+                document.getElementById('wallet-tab').classList.add('active-content');
+                event.currentTarget.classList.add('active');
+            }
+        }
+
+        function openCartelaSelection(stake) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
+            document.getElementById('cartela-view').classList.add('active-content');
+            document.getElementById('current-stake').innerText = stake;
+            const container = document.getElementById('cartela-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= 200; i++) {
+                const div = document.createElement('div');
+                div.className = 'cartela-num';
+                div.innerText = i;
+                div.onclick = function() { this.classList.toggle('selected'); };
+                container.appendChild(div);
+            }
+        }
+
+        function submitDeposit() {
+            const amount = document.getElementById('deposit-amount').value;
+            const ref = document.getElementById('ref-number').value;
+            if(amount < 10 || !ref) {
+                alert('እባክዎ ትክክለኛ መጠን (ከ10 ብር በላይ) እና የማጣቀሻ ቁጥር ያስገቡ!');
+                return;
+            }
+            alert('የተቀማጭ ጥያቄዎ ለአስተዳዳሪው ተልኳል። እባክዎ እስኪረጋገጥ ይጠብቁ!');
+        }
+    </script>
+</body>
+</html>
